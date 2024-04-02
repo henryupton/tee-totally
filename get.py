@@ -3,19 +3,21 @@ import json
 
 import pendulum
 
-from clubs import CLUBS
 from compare import compare_states
 from logger import log
 from scrape import get_tee_times
 from state import get_previous_state
 from state import save_state
+from manifest import get_latest_manifest
 
 
 def get(
         booking_date: pendulum.DateTime,
         club_id: int,
 ):
-    log.info(f"Checking tee times for {booking_date.format('dddd Do [of] MMMM YYYY')} at {CLUBS[club_id]['name']}...")
+    manifest = get_latest_manifest()
+
+    log.info(f"Checking tee times for {booking_date.format('dddd Do [of] MMMM YYYY')} at {manifest[club_id]['name']}...")
 
     current_state: dict = get_tee_times(booking_date, club_id)
     previous_state: dict = get_previous_state(booking_date, club_id)

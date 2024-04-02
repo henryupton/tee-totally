@@ -1,4 +1,7 @@
+import json
 import os
+import sys
+from typing import Optional
 
 import click
 import pendulum
@@ -64,6 +67,40 @@ def list(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
     from list import list_ as list_clubs
 
     list_clubs(**kwargs)
+
+
+@cli.command("compare")
+@click.pass_context
+@click.option(
+    "--file-a",
+    required=True,
+)
+@click.option(
+    "--file-b",
+    required=True,
+)
+@click.option(
+    "--output-path",
+    required=False,
+    default=None,
+    help="Path to output file.",
+)
+def compare(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
+    """Compare two files."""
+    from compare import compare_states
+
+    with open(kwargs.pop("file_a")) as a, open(kwargs.pop("file_b")) as b:
+        state_a: dict = json.load(a)
+        state_b: dict = json.load(b)
+
+    diff: dict = compare_states(state_a, state_b)
+
+    output_path: Optional[str] = kwargs.pop("output_path", None)
+    if output_path:
+        with open(output_path, "w") as f:
+            json.dump(diff, f, indent=2, default=str)
+    else:
+        sys.stdout.write(json.dumps(diff, indent=2, default=str))
 
 
 @cli.command("build")
