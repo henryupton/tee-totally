@@ -121,15 +121,21 @@ def compare(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
 )
 @click.option(
     "--from",
-    "from_timestamp",
-    required=True,
-    help="Start timestamp for search (YYYY-MM-DD HH:MM:SS).",
+    "from_date",
+    required=False,
+    help="Start date for search (YYYY-MM-DD).",
 )
 @click.option(
     "--to",
-    "to_timestamp",
-    required=True,
-    help="End timestamp for search (YYYY-MM-DD HH:MM:SS).",
+    "to_date",
+    required=False,
+    help="End date for search (YYYY-MM-DD).",
+)
+@click.option(
+    "--next-n-days",
+    required=False,
+    type=int,
+    help="Search next N days from today (alternative to --from/--to).",
 )
 @click.option(
     "--time-range",
@@ -166,13 +172,34 @@ def find(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
     from find import find_available_tee_times
     
     club_id = int(kwargs.pop("club_id"))
-    from_timestamp = pendulum.parse(kwargs.pop("from_timestamp"))
-    to_timestamp = pendulum.parse(kwargs.pop("to_timestamp"))
+    from_date_str = kwargs.pop("from_date")
+    to_date_str = kwargs.pop("to_date")
+    next_n_days = kwargs.pop("next_n_days")
     time_range = kwargs.pop("time_range")
     period = kwargs.pop("period")
     free_slots = kwargs.pop("free_slots")
     playing_partners = kwargs.pop("playing_partners")
     day_of_week = kwargs.pop("day_of_week")
+    
+    # Validate date/timestamp options
+    if next_n_days is not None:
+        if from_date_str or to_date_str:
+            click.echo("Error: Cannot use --next-n-days with --from/--to. Choose one approach.")
+            return
+        if next_n_days <= 0:
+            click.echo("Error: --next-n-days must be greater than 0.")
+            return
+        # Calculate timestamps from next_n_days
+        now = pendulum.now()
+        from_timestamp = now.start_of('day')
+        to_timestamp = now.add(days=next_n_days).end_of('day')
+    else:
+        if not from_date_str or not to_date_str:
+            click.echo("Error: Either use --next-n-days OR provide both --from and --to dates.")
+            return
+        # Convert dates to full day timestamps
+        from_timestamp = pendulum.parse(from_date_str).start_of('day')
+        to_timestamp = pendulum.parse(to_date_str).end_of('day')
     
     # Validate playing_partners constraint
     if playing_partners is not None:
