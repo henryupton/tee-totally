@@ -17,7 +17,7 @@ def get(
 ):
     manifest = get_latest_manifest()
 
-    log.info(f"Checking tee times for {booking_date.format('dddd Do [of] MMMM YYYY')} at {manifest[club_id]['name']}...")
+    log.info(f"Checking tee times for {booking_date.format('dddd Do [of] MMMM YYYY')} at {manifest[str(club_id)]['name']}...")
 
     current_state: dict = get_tee_times(booking_date, club_id)
     previous_state: dict = get_previous_state(booking_date, club_id)

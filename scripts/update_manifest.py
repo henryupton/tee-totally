@@ -1,11 +1,14 @@
 import json
 import os
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 import click
 import pendulum
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
+from clubs import CLUBS
 
 
 def get_latest_manifest():
@@ -28,7 +31,7 @@ def main(
 
     driver = webdriver.Chrome()
 
-    clubs = get_latest_manifest()
+    clubs = {str(k): v for k, v in CLUBS.items()}
 
     for club_id, club_info in clubs.items():
         if club_info == {}:
