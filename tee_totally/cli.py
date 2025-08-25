@@ -116,8 +116,9 @@ def compare(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
 @click.pass_context
 @click.option(
     "--club-id",
-    required=True,
-    help="Club ID to search for tee times.",
+    multiple=True,
+    type=int,
+    help="Club ID(s) to search for tee times. Can specify multiple times (e.g., --club-id 341 --club-id 342).",
 )
 @click.option(
     "--from",
@@ -171,7 +172,11 @@ def find(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
     """Find available tee times for a club within a timestamp range."""
     from .find import find_available_tee_times
     
-    club_id = int(kwargs.pop("club_id"))
+    club_ids = kwargs.pop("club_id")
+    if not club_ids:
+        click.echo("Error: At least one --club-id is required.")
+        return
+        
     from_date_str = kwargs.pop("from_date")
     to_date_str = kwargs.pop("to_date")
     next_n_days = kwargs.pop("next_n_days")
@@ -215,7 +220,7 @@ def find(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
             start_time, end_time = PERIODS[period]
             time_range = f"{start_time}-{end_time}"
     
-    find_available_tee_times(club_id, from_timestamp, to_timestamp, time_range, free_slots, playing_partners, day_of_week)
+    find_available_tee_times(club_ids, from_timestamp, to_timestamp, time_range, free_slots, playing_partners, day_of_week)
 
 
 @cli.command("build")

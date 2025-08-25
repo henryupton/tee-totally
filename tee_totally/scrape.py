@@ -13,6 +13,7 @@ def get_tee_times(booking_date: pendulum.DateTime, club_id: int) -> dict:
         "updated_at": pendulum.now(),
         "booking_date": booking_date.to_date_string(),
         "club_id": club_id,
+        "club_name": None,
         "tee_times": {}
     }
 
@@ -29,6 +30,30 @@ def get_tee_times(booking_date: pendulum.DateTime, club_id: int) -> dict:
     )
 
     soup = BeautifulSoup(page.content, "html.parser")
+    
+    # Extract club name from page headers
+    club_name = None
+    # Look for h2 or h3 tags with "SPECIAL OFFERS at" or "Showing All Slots at" patterns
+    for header in soup.find_all(['h2', 'h3']):
+        header_text = header.get_text(strip=True)
+        if 'Showing All Slots at' in header_text:
+            # Extract club name between "at" and "on"
+            if ' at ' in header_text and ' on ' in header_text:
+                club_name = header_text.split(' at ')[1].split(' on ')[0].strip()
+                break
+    
+    # Fallback: try to extract from competition names
+    if not club_name:
+        comp_table = soup.find('table', id='MainContent_competitionsTable')
+        if comp_table:
+            first_comp = comp_table.find('td')
+            if first_comp and first_comp.text.strip():
+                # Assume first word of competition name is club name
+                comp_name = first_comp.text.strip()
+                if ' ' in comp_name:
+                    club_name = comp_name.split()[0]
+    
+    state["club_name"] = club_name
 
     table = soup.find('table', id="MainContent_TimeslotsTable")
     rows = table.find_all('tr')
