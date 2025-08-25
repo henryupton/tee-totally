@@ -6,6 +6,7 @@ import pendulum
 
 from .logger import log
 from .scrape import get_tee_times
+from .clubs import CLUBS
 
 
 def find_available_tee_times(
@@ -77,13 +78,35 @@ def find_available_tee_times(
                     if min_playing_partners is not None and booked_slots < min_playing_partners:
                         continue
                     
-                    available_times.append({
+                    # Collect available slots with booking links
+                    available_slot_details = []
+                    for slot in tee_time_info.get("slots", []):
+                        if slot.get("status") == "Available":
+                            available_slot_details.append({
+                                "booking_id": slot.get("booking_id"),
+                                "booking_url": slot.get("booking_url")
+                            })
+                    
+                    # Get club information
+                    club_info = CLUBS.get(club_id, {})
+                    
+                    # Generate unique ID: <club_id>-<unix_epoch_tee_time>
+                    unique_id = f"{club_id}-{int(tee_time.timestamp())}"
+                    
+                    result = {
+                        "id": unique_id,
                         "tee_time": tee_time_str,
                         "available_slots": available_slots,
                         "booked_slots": booked_slots,
                         "total_slots": len(tee_time_info.get("slots", [])),
-                        "date": booking_date.to_date_string()
-                    })
+                        "date": booking_date.to_date_string(),
+                        "club_name": club_info.get("name", f"Club {club_id}"),
+                        "club_id": club_id,
+                        "booking_links": available_slot_details,
+                        "search_url": f"https://www.golf.co.nz/Teebooking/SearchSlots.aspx?ClubId={club_id}&Date={booking_date.to_date_string()}"
+                    }
+                    
+                    available_times.append(result)
         
         except Exception as e:
             log.error(f"Error getting tee times for {booking_date.to_date_string()}: {e}")

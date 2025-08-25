@@ -58,13 +58,25 @@ def get_tee_times(booking_date: pendulum.DateTime, club_id: int) -> dict:
 
             title = img.get("title")
             if title == "Available":
+                # Look for booking link
+                booking_link = slot.find("a", class_="book_here_link")
+                booking_id = None
+                booking_url = None
+                
+                if booking_link:
+                    booking_id = booking_link.get("id")
+                    # Generate direct booking URL
+                    booking_url = f"https://www.golf.co.nz/Teebooking/SearchSlots.aspx?ClubId={club_id}&Date={booking_date.to_date_string()}#{booking_id}"
+                
                 state["tee_times"][tee_time.to_datetime_string()]["slots"].append(
                     {
                         "affiliated": None,
                         "holes": None,
                         "handicap": None,
                         "gender": None,
-                        "status": title
+                        "status": title,
+                        "booking_id": booking_id,
+                        "booking_url": booking_url
                     }
                 )
                 continue
@@ -100,7 +112,9 @@ def get_tee_times(booking_date: pendulum.DateTime, club_id: int) -> dict:
                     "holes": holes,
                     "handicap": handicap,
                     "gender": gender,
-                    "status": "Booked"
+                    "status": "Booked",
+                    "booking_id": None,
+                    "booking_url": None
                 }
             )
 
