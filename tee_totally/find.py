@@ -4,8 +4,8 @@ import sys
 
 import pendulum
 
-from logger import log
-from scrape import get_tee_times
+from .logger import log
+from .scrape import get_tee_times
 
 
 def find_available_tee_times(

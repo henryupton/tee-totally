@@ -4,8 +4,8 @@ import pendulum
 import requests
 from bs4 import BeautifulSoup
 
-from clubs import CLUBS
-from logger import log
+from .clubs import CLUBS
+from .logger import log
 
 
 def get_tee_times(booking_date: pendulum.DateTime, club_id: int) -> dict:

@@ -1,4 +1,4 @@
-from main import compare_states
+from .compare import compare_states
 
 state_a = {
     "updated_at": "2024-03-29T20:36:18.822518+13:00",

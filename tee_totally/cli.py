@@ -50,7 +50,7 @@ def cli(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
 )
 def get(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
     """Get tee times for a given range of dates."""
-    from get import get as get_tee_times
+    from .get import get as get_tee_times
 
     booking_date = pendulum.parse(kwargs.pop("booking_date"), tz=os.getenv("BOOKING_TIMEZONE", "Pacific/Auckland"))
     look_forward_days: int = int(kwargs.pop("look_forward_days"))
@@ -73,7 +73,7 @@ def get(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
 )
 def list(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
     """List all available clubs."""
-    from list import list_ as list_clubs
+    from .list import list_ as list_clubs
 
     list_clubs(**kwargs)
 
@@ -96,7 +96,7 @@ def list(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
 )
 def compare(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
     """Compare two files."""
-    from compare import compare_states
+    from .compare import compare_states
 
     with open(kwargs.pop("file_a")) as a, open(kwargs.pop("file_b")) as b:
         state_a: dict = json.load(a)
@@ -169,7 +169,7 @@ def compare(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
 )
 def find(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
     """Find available tee times for a club within a timestamp range."""
-    from find import find_available_tee_times
+    from .find import find_available_tee_times
     
     club_id = int(kwargs.pop("club_id"))
     from_date_str = kwargs.pop("from_date")

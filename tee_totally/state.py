@@ -5,7 +5,7 @@ from typing import Optional
 
 import pendulum
 
-from logger import log
+from .logger import log
 
 ARCHIVE_DIR = os.getenv("ARCHIVE_DIR", "./clubs")
 pathlib.Path(ARCHIVE_DIR).mkdir(parents=True, exist_ok=True)

@@ -1,7 +1,7 @@
 import json
 import sys
 
-from clubs import CLUBS
+from .clubs import CLUBS
 
 FIELDS = ["name", "club_id", "url", "booking_url"]
 

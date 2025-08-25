@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tee-totally"
+version = "0.1.0"
+description = "A Python CLI tool for finding and monitoring golf tee times at New Zealand golf courses"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+    {name = "Henry Upton", email = "henryupton@gmail.com"}
+]
+keywords = ["golf", "tee-times", "cli", "new-zealand"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Games/Entertainment",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "pendulum",
+    "click",
+    "beautifulsoup4",
+    "requests",
+    "selenium"
+]
+
+[project.scripts]
+tee-totally = "tee_totally.cli:cli"
+
+[project.urls]
+Homepage = "https://github.com/yourusername/tee-totally"
+"Bug Tracker" = "https://github.com/yourusername/tee-totally/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["tee_totally*"]
+exclude = ["tests*"]

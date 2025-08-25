@@ -3,12 +3,12 @@ import json
 
 import pendulum
 
-from compare import compare_states
-from logger import log
-from scrape import get_tee_times
-from state import get_previous_state
-from state import save_state
-from manifest import get_latest_manifest
+from .compare import compare_states
+from .logger import log
+from .scrape import get_tee_times
+from .state import get_previous_state
+from .state import save_state
+from .manifest import get_latest_manifest
 
 
 def get(
