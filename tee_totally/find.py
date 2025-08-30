@@ -17,7 +17,7 @@ def find_available_tee_times(
         min_free_slots: int = 1,
         min_playing_partners: int = None,
         allowed_days_of_week: tuple = None
-) -> None:
+) -> list:
     """Find available tee times for multiple clubs within a timestamp range."""
     
     available_times = []
@@ -32,7 +32,7 @@ def find_available_tee_times(
             time_filter_end = pendulum.parse(end_time_str.strip()).time()
         except ValueError:
             log.error(f"Invalid time range format: {time_range}. Expected HH:MM-HH:MM")
-            return
+            return []
     
     # Get date range to search
     start_date = from_timestamp.date()
@@ -128,3 +128,6 @@ def find_available_tee_times(
             sys.stdout.write("\n")
     else:
         log.info("No available tee times found in the specified range.")
+    
+    # Return results for notifications and further processing
+    return available_times

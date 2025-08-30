@@ -174,6 +174,21 @@ def compare(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
     type=click.Choice(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]),
     help="Filter by day of week (can specify multiple).",
 )
+@click.option(
+    "--notify",
+    is_flag=True,
+    help="Send SNS notification when tee times are found.",
+)
+@click.option(
+    "--topic-name",
+    default="tee-totally-notifications",
+    help="SNS topic name for notifications (default: tee-totally-notifications).",
+)
+@click.option(
+    "--region",
+    default="ap-southeast-2",
+    help="AWS region for SNS notifications (default: ap-southeast-2).",
+)
 def find(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
     """Find available tee times for a club within a timestamp range."""
     from .find import find_available_tee_times
@@ -206,6 +221,9 @@ def find(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
     free_slots = kwargs.pop("free_slots")
     playing_partners = kwargs.pop("playing_partners")
     day_of_week = kwargs.pop("day_of_week")
+    notify = kwargs.pop("notify")
+    topic_name = kwargs.pop("topic_name")
+    region = kwargs.pop("region")
     
     # Validate date/timestamp options
     if next_n_days is not None:
@@ -241,14 +259,171 @@ def find(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
             start_time, end_time = PERIODS[period]
             time_range = f"{start_time}-{end_time}"
     
-    find_available_tee_times(club_ids, from_timestamp, to_timestamp, time_range, free_slots, playing_partners, day_of_week)
+    # Call find function and get results
+    available_times = find_available_tee_times(club_ids, from_timestamp, to_timestamp, time_range, free_slots, playing_partners, day_of_week)
+    
+    # Send notification if requested and tee times were found
+    if notify and available_times:
+        from .notifications import send_tee_time_notification
+        
+        search_criteria = {
+            'time_range': time_range,
+            'day_of_week': day_of_week,
+            'free_slots': free_slots,
+            'playing_partners': playing_partners
+        }
+        
+        click.echo(f"📲 Sending notification to SNS topic: {topic_name}")
+        
+        if send_tee_time_notification(available_times, search_criteria, topic_name, region):
+            click.echo("✅ Notification sent successfully!")
+        else:
+            click.echo("❌ Failed to send notification")
+    elif notify and not available_times:
+        click.echo("📲 No tee times found - no notification sent")
 
 
-@cli.command("build")
+@cli.group("build")
 @click.pass_context
 def build(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
     """Build required resources."""
     pass
+
+
+@build.command("sns")
+@click.pass_context
+@click.option(
+    "--topic-name",
+    default="tee-totally-notifications",
+    help="Name of the SNS topic to create (default: tee-totally-notifications).",
+)
+@click.option(
+    "--display-name",
+    default="Tee Totally Notifications",
+    help="Display name for the SNS topic.",
+)
+@click.option(
+    "--phone-number",
+    help="Phone number to subscribe for SMS notifications (E.164 format, e.g., +1234567890).",
+)
+@click.option(
+    "--email",
+    help="Email address to subscribe for email notifications.",
+)
+@click.option(
+    "--region",
+    default="ap-southeast-2",
+    help="AWS region to create resources in (default: ap-southeast-2).",
+)
+def build_sns(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
+    """Build SNS topic for WhatsApp/SMS notifications."""
+    from .notifications import SNSNotifier
+    
+    topic_name = kwargs.pop("topic_name")
+    display_name = kwargs.pop("display_name")
+    phone_number = kwargs.pop("phone_number")
+    email = kwargs.pop("email")
+    region = kwargs.pop("region")
+    
+    click.echo(f"Creating SNS resources in region: {region}")
+    
+    # Initialize SNS notifier
+    notifier = SNSNotifier(region_name=region)
+    
+    if not notifier.is_available():
+        click.echo("❌ SNS not available. Make sure boto3 is installed and AWS credentials are configured.")
+        return
+    
+    # Check if topic already exists
+    existing_topic_arn = notifier.get_topic_by_name(topic_name)
+    if existing_topic_arn:
+        click.echo(f"ℹ️  SNS topic '{topic_name}' already exists: {existing_topic_arn}")
+        topic_arn = existing_topic_arn
+    else:
+        # Create topic
+        click.echo(f"Creating SNS topic: {topic_name}")
+        topic_arn = notifier.create_topic(topic_name, display_name)
+        
+        if not topic_arn:
+            click.echo("❌ Failed to create SNS topic")
+            return
+        
+        click.echo(f"✅ SNS topic created successfully: {topic_arn}")
+    
+    # Subscribe phone number if provided
+    if phone_number:
+        click.echo(f"Subscribing phone number: {phone_number}")
+        
+        if notifier.add_phone_subscription(topic_arn, phone_number):
+            click.echo(f"✅ Phone number subscribed successfully")
+            click.echo("📱 You should receive an SMS confirmation. Reply 'YES' to confirm the subscription.")
+        else:
+            click.echo("❌ Failed to subscribe phone number")
+    
+    # Subscribe email if provided
+    if email:
+        click.echo(f"Subscribing email address: {email}")
+        
+        if notifier.add_email_subscription(topic_arn, email):
+            click.echo(f"✅ Email address subscribed successfully")
+            click.echo("📧 You should receive an email confirmation. Click the confirmation link to confirm the subscription.")
+        else:
+            click.echo("❌ Failed to subscribe email address")
+    
+    # Show configuration info
+    click.echo("\n🔧 Configuration:")
+    click.echo(f"  Topic Name: {topic_name}")
+    click.echo(f"  Topic ARN: {topic_arn}")
+    click.echo(f"  Region: {region}")
+    
+    if phone_number:
+        click.echo(f"  Phone: {phone_number}")
+    if email:
+        click.echo(f"  Email: {email}")
+    
+    click.echo("\n📝 Next steps:")
+    steps = []
+    if phone_number:
+        steps.append("1. Confirm SMS subscription (reply 'YES' to the SMS)")
+    if email:
+        steps.append(f"{len(steps) + 1}. Confirm email subscription (click link in email)")
+    steps.append(f"{len(steps) + 1}. Test notifications with: tee-totally build test-notification")
+    steps.append(f"{len(steps) + 1}. Use --notify flag when running find commands")
+    
+    for step in steps:
+        click.echo(f"  {step}")
+
+
+@build.command("test-notification")
+@click.pass_context
+@click.option(
+    "--topic-name",
+    default="tee-totally-notifications",
+    help="Name of the SNS topic to test (default: tee-totally-notifications).",
+)
+@click.option(
+    "--region",
+    default="ap-southeast-2",
+    help="AWS region (default: ap-southeast-2).",
+)
+def test_notification(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
+    """Send a test notification to verify SNS setup."""
+    from .notifications import send_test_notification
+    
+    topic_name = kwargs.pop("topic_name")
+    region = kwargs.pop("region")
+    
+    click.echo(f"Sending test notification to SNS topic: {topic_name}")
+    
+    if send_test_notification(topic_name, region):
+        click.echo("✅ Test notification sent successfully!")
+        click.echo("📱 Check your phone/WhatsApp for the test message.")
+    else:
+        click.echo("❌ Failed to send test notification")
+        click.echo("Check that:")
+        click.echo("  - AWS credentials are configured")
+        click.echo("  - SNS topic exists (create with: tee-totally build sns)")
+        click.echo("  - Phone number is subscribed and confirmed")
 
 
 @cli.command("destroy")
