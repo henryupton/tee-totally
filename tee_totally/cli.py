@@ -8,7 +8,7 @@ import pendulum
 
 # Period to time range mapping
 PERIODS = {
-    "dawn": ("05:00", "07:00"),
+    "dawn": ("05:00", "08:00"),
     "morning": ("07:00", "12:00"),
     "noon": ("11:00", "14:00"),
     "afternoon": ("12:00", "18:00"),
@@ -121,6 +121,12 @@ def compare(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
     help="Club ID(s) to search for tee times. Can specify multiple times (e.g., --club-id 341 --club-id 342).",
 )
 @click.option(
+    "--club-name", 
+    multiple=True,
+    type=str,
+    help="Club name(s) to search for tee times. Uses fuzzy matching. Can specify multiple times (e.g., --club-name 'Pupuke' --club-name 'Taupo').",
+)
+@click.option(
     "--from",
     "from_date",
     required=False,
@@ -171,10 +177,25 @@ def compare(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
 def find(ctx, **kwargs):  # noqa:  # pylint: disable=unused-argument
     """Find available tee times for a club within a timestamp range."""
     from .find import find_available_tee_times
+    from .clubs import find_club_ids_by_name, get_club_name_by_id
     
-    club_ids = kwargs.pop("club_id")
+    club_ids = list(kwargs.pop("club_id")) if kwargs.get("club_id") else []
+    club_names = kwargs.pop("club_name")
+    
+    # Handle club name lookups
+    if club_names:
+        for club_name in club_names:
+            matched_ids = find_club_ids_by_name(club_name, max_matches=1)
+            if matched_ids:
+                matched_id = matched_ids[0]
+                matched_club_name = get_club_name_by_id(matched_id)
+                click.echo(f"Found club: {matched_club_name} (ID: {matched_id}) for search '{club_name}'")
+                club_ids.append(matched_id)
+            else:
+                click.echo(f"Warning: No clubs found matching '{club_name}'")
+    
     if not club_ids:
-        click.echo("Error: At least one --club-id is required.")
+        click.echo("Error: At least one --club-id or --club-name is required.")
         return
         
     from_date_str = kwargs.pop("from_date")
